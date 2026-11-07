@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# The app's saved database (created by npm start, or mounted at /data in Docker)
+data/
+
+# Playwright output
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local settings and secrets
+.env
+.env.*
+
+# Operating system files
+.DS_Store
+Thumbs.db

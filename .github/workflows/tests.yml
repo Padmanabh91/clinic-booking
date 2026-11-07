@@ -1,0 +1,121 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch cancels the older run.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API, database and server tests, then bug mode
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc # the same Node version as local development
+          cache: npm
+      - run: npm ci
+      - name: API, database and server tests
+        run: npx playwright test --project=api --project=db --project=server
+      # Bug mode only runs once the normal tests pass. It writes no HTML report, so the
+      # report uploaded below is still the one from the step above.
+      - name: Bug mode (prove the tests catch every known bug)
+        run: npm run test:bugs
+      - name: Upload the HTML report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-api
+          path: playwright-report/
+          retention-days: 14
+      - name: Upload traces, screenshots and videos
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-api
+          path: test-results/
+          retention-days: 14
+
+  ui:
+    name: UI tests (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false # one browser failing doesn't stop the others
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Install ${{ matrix.browser }}
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: UI, accessibility and journey tests
+        run: npx playwright test --project=${{ matrix.browser }}
+      - name: Upload the HTML report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-${{ matrix.browser }}
+          path: playwright-report/
+          retention-days: 14
+      - name: Upload traces, screenshots and videos
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.browser }}
+          path: test-results/
+          retention-days: 14
+
+  # Builds the production image and proves it starts, answers /api/health, keeps its data
+  # in the volume, and closes the database cleanly when Docker stops it.
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker build -t clinic-booking .
+      - name: Start a container with a data volume
+        run: docker run -d --name clinic -p 3000:3000 -e COOKIE_SECURE=false -v clinic-data:/data clinic-booking
+      - name: Wait for /api/health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/api/health; then exit 0; fi
+            sleep 1
+          done
+          docker logs clinic
+          exit 1
+      - name: Register a patient, so there is data to keep
+        run: |
+          curl -fsS -H 'Content-Type: application/json' \
+            -d '{"name":"CI Patient","email":"ci@clinic.test","password":"ci-password-1"}' \
+            http://127.0.0.1:3000/api/register
+      - name: Stop it and check it shut down cleanly
+        run: |
+          docker stop clinic
+          docker logs clinic
+          docker logs clinic 2>&1 | grep -q "SIGTERM received, shutting down."
+          docker logs clinic 2>&1 | grep -q "Closed the database. Goodbye."
+          test "$(docker inspect -f '{{.State.ExitCode}}' clinic)" = "0"
+      - name: A new container on the same volume still has the data
+        run: |
+          docker run -d --name clinic2 -p 3001:3000 -e COOKIE_SECURE=false -v clinic-data:/data clinic-booking
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3001/api/health; then break; fi
+            sleep 1
+          done
+          curl -fsS -H 'Content-Type: application/json' \
+            -d '{"email":"ci@clinic.test","password":"ci-password-1"}' \
+            http://127.0.0.1:3001/api/login

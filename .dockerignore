@@ -1,0 +1,16 @@
+# Only package*.json, src/ and public/ are needed in the image.
+node_modules
+data
+tests
+docs
+scripts
+test-results
+playwright-report
+blob-report
+.git
+.github
+.env
+.env.*
+*.log
+Dockerfile
+docker-compose.yml

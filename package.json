@@ -1,0 +1,27 @@
+{
+  "name": "clinic-booking",
+  "version": "1.0.0",
+  "description": "A Bangalore clinic appointment booking app with a Playwright UI and API test suite",
+  "private": true,
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "playwright test",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:api": "playwright test --project=api",
+    "test:db": "playwright test --project=db",
+    "test:server": "playwright test --project=server",
+    "test:ui": "playwright test --project=chromium",
+    "test:bugs": "node scripts/bug-mode.js",
+    "report": "playwright show-report"
+  },
+  "dependencies": {
+    "express": "^5.3.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.65.0"
+  }
+}

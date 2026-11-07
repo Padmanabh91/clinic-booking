@@ -1,0 +1,28 @@
+# Runs the app on http://localhost:3000 with its database kept in the "clinic-data" volume.
+#   docker compose up --build      start (add -d to run in the background)
+#   docker compose down            stop; the data stays in the volume
+#   docker compose down -v         stop and delete the data
+services:
+  app:
+    build: .
+    image: clinic-booking
+    ports:
+      - "3000:3000"
+    environment:
+      # Sign-in cookies are sent over HTTPS only when this is true. It defaults to true in
+      # production; it is false here so the app works on plain http://localhost.
+      # Set it to true whenever the site is served over HTTPS.
+      COOKIE_SECURE: "false"
+      # Set when a reverse proxy or load balancer sits in front of the app, so the sign-in
+      # limit sees each visitor's address instead of the proxy's. Takes Express "trust proxy"
+      # values: true, a number of proxies (e.g. 1), or addresses such as "loopback".
+      # Leave it empty when nothing sits in front of the app.
+      TRUST_PROXY: ""
+    volumes:
+      - clinic-data:/data
+    restart: unless-stopped
+    # Matches the app's own 10-second limit for finishing open requests on shutdown.
+    stop_grace_period: 15s
+
+volumes:
+  clinic-data:

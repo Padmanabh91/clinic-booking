@@ -2,16 +2,16 @@ const { AxeBuilder } = require('@axe-core/playwright');
 const { test, expect } = require('../support/local-app');
 const { AppointmentsPage } = require('../pages/appointments-page');
 const { TODAY, TOMORROW } = require('../support/clinic-time');
+const { GENERAL_MEDICINE } = require('../support/doctors');
 
 // Past appointments need the clock to move, so each test runs its own copy of the app.
 // The clock starts at Monday 10:00 IST.
 
-const ASHA_RAO = { id: 1, name: 'Dr. Asha Rao' };
 
 async function bookAndLetStart({ patient, clock }) {
-  await patient.book(ASHA_RAO.id, { date: TODAY, time: '10:30', reason: 'Fever' });
-  await patient.book(ASHA_RAO.id, { date: TODAY, time: '11:00', reason: 'Cough' });
-  await patient.book(ASHA_RAO.id, { date: TOMORROW, time: '10:00', reason: 'Check-up' });
+  await patient.book(GENERAL_MEDICINE.id, { date: TODAY, time: '10:30', reason: 'Fever' });
+  await patient.book(GENERAL_MEDICINE.id, { date: TODAY, time: '11:00', reason: 'Cough' });
+  await patient.book(GENERAL_MEDICINE.id, { date: TOMORROW, time: '10:00', reason: 'Check-up' });
   clock.advance(90); // 11:30: the first two have started
 }
 

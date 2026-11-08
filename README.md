@@ -1,6 +1,6 @@
 # Clinic Booking: Test Automation Portfolio
 
-[![Tests](https://github.com/OWNER/REPO/actions/workflows/tests.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/tests.yml)
+[![Tests](https://github.com/Padmanabh91/clinic-booking/actions/workflows/tests.yml/badge.svg)](https://github.com/Padmanabh91/clinic-booking/actions/workflows/tests.yml)
 
 A test automation project built around a working appointment booking app for a clinic in Bangalore. The suite uses **Playwright and plain JavaScript** across five layers: database, API, a server layer with a movable clock, cross-browser UI, and end-to-end journeys. It also covers accessibility, a phone layout, a race for the same slot and a session ending mid-booking. **Bug mode** proves the tests can actually fail: it switches on ten known bugs one at a time and checks that each one turns tests red. The whole suite runs in parallel in about 6 minutes, and CI runs it on every push.
 
@@ -10,11 +10,11 @@ A test automation project built around a working appointment booking app for a c
 | Layer | Folder | Tests | Test runs | What it proves |
 |---|---|---|---|---|
 | Journeys | `tests/ui/journeys/` | 4 | 12 (3 browsers) | A patient's and an admin's whole journey, a race for one slot, a session ending mid-booking |
-| UI and accessibility | `tests/ui/` | 117 | 351 (3 browsers) | What users see: messages, loading/empty/error states, focus, keyboard use, axe checks, the 375px layout |
+| UI and accessibility | `tests/ui/` | 120 | 360 (3 browsers) | What users see: messages, loading/empty/error states, focus, keyboard use, axe checks, the 375px layout |
 | Server | `tests/server/` | 53 | 53 | Rules that need time to pass (sessions, the sign-in limit, outcomes), settings, clean shutdown |
 | API | `tests/api/` | 147 | 147 | Booking rules, boundaries, permissions and error codes |
-| Database | `tests/db/` | 22 | 22 | Migrations, constraints and transactions |
-| **Total** | | **343** | **585** | |
+| Database | `tests/db/` | 23 | 23 | Migrations, constraints and transactions |
+| **Total** | | **347** | **595** | |
 
 Every test is tagged either `@smoke` (27 runs: the journeys and the core booking, cancellation and sign-in tests) or `@regression`.
 
@@ -100,6 +100,8 @@ The tests start their own server, so `npm start` isn't needed first.
 
 ## The app
 Patients register, choose a doctor, date and free slot, then book, reschedule or cancel, and see their upcoming appointments and history. Admins see every appointment and can cancel any of them. They filter by doctor, dates and status, with a count per status. They add, edit and deactivate doctors, set doctors' leave days and clinic holidays, and mark appointments completed or no-show. If a schedule change would affect booked appointments, the admin sees them first. They're only cancelled once the admin confirms, and the patient sees the reason.
+
+The three demo doctors are all named Dr. Padmanabh, so the app shows the specialty with the name wherever a doctor is listed or chosen, for example "Dr. Padmanabh · General Medicine".
 
 **Rules**
 - Slots run every 30 minutes from 09:00 to 16:30 IST, with lunch from 13:00 to 14:00, on the doctor's working days.

@@ -118,6 +118,10 @@ const DAYS = [
 const dayList = (days) => DAYS.filter((d) => days.includes(d.value)).map((d) => d.short).join(', ');
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
+// Doctors can share a name, so the specialty goes with the name wherever one is shown.
+const doctorLabel = (doctor) => `${doctor.name} · ${doctor.specialty}`;
+const appointmentDoctor = (a) => doctorLabel({ name: a.doctorName, specialty: a.specialty });
+
 const formatDate = (date) => new Date(`${date}T00:00:00Z`).toLocaleDateString('en-GB', {
   weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
 });
@@ -306,7 +310,7 @@ async function renderBook() {
   }
 
   const doctor = el('select', { id: 'doctor', required: true },
-    ...doctors.map((d) => el('option', { value: d.id, text: `${d.name} (${d.specialty})` })));
+    ...doctors.map((d) => el('option', { value: d.id, text: doctorLabel(d) })));
   const date = el('input', { id: 'date', type: 'date', required: true, min: config.today, max: config.lastBookableDate, value: config.today });
   const reason = el('textarea', { id: 'reason', rows: 3, maxlength: 200, required: true });
   const error = el('p', { class: 'error', role: 'alert' });
@@ -397,7 +401,7 @@ function confirmCancel(appointment) {
   openDialog({
     title: 'Cancel this appointment?',
     body: [
-      el('p', { text: `${appointment.doctorName}, ${formatDate(appointment.date)} at ${appointment.time}` }),
+      el('p', { text: `${appointmentDoctor(appointment)}, ${formatDate(appointment.date)} at ${appointment.time}` }),
       field('Reason (optional)', reason),
     ],
     keepText: 'Keep appointment',
@@ -434,12 +438,12 @@ function appointmentCard(a, { config, isAdmin, started, byId }) {
   const upcoming = a.status === 'booked' && !started;
   return el('article', { class: 'card', 'data-testid': 'appointment-card' },
     el('div', { class: 'row' },
-      el('h3', { text: a.doctorName }),
+      el('h3', { text: appointmentDoctor(a) }),
       el('span', {
         class: `status ${a.status}`, 'data-testid': 'appointment-status',
         text: a.rescheduledToId ? 'Rescheduled' : STATUS_LABELS[a.status],
       })),
-    el('p', { class: 'muted', text: `${a.specialty} · ${config.city}` }),
+    el('p', { class: 'muted', text: config.city }),
     el('p', { class: 'muted', text: `${formatDate(a.date)} at ${a.time} ${config.timeZoneLabel}` }),
     isAdmin && el('p', { class: 'muted', text: `Patient: ${a.patientName}` }),
     el('p', { class: 'reason', text: a.reason }),
@@ -486,7 +490,7 @@ function showSummary(container, { counts, total }) {
 function filterForm(doctors, load) {
   const error = el('p', { class: 'error', role: 'alert' });
   const doctor = el('select', { id: 'filter-doctor' }, el('option', { value: '', text: 'All doctors' }),
-    ...doctors.map((d) => el('option', { value: d.id, text: d.active ? d.name : `${d.name} (inactive)` })));
+    ...doctors.map((d) => el('option', { value: d.id, text: d.active ? doctorLabel(d) : `${doctorLabel(d)} (inactive)` })));
   const from = el('input', { id: 'filter-from', type: 'date' });
   const to = el('input', { id: 'filter-to', type: 'date' });
   const status = el('select', { id: 'filter-status' }, el('option', { value: '', text: 'All statuses' }),
@@ -583,7 +587,7 @@ async function renderReschedule(id) {
   showScreen('Move appointment',
     el('p', {
       class: 'note', 'data-testid': 'current-appointment',
-      text: `Currently ${when(appointment)} ${config.timeZoneLabel} with ${appointment.doctorName}.`,
+      text: `Currently ${when(appointment)} ${config.timeZoneLabel} with ${appointmentDoctor(appointment)}.`,
     }),
     el('div', { class: 'card' },
       el('form', {
@@ -638,7 +642,7 @@ async function sendScheduleChange({ send, title, onDone, afterFirstTry = () => {
       body: [
         el('p', { text: `${plural(n, 'booked appointment')} will be cancelled. Patients will see the reason in their appointments.` }),
         el('ul', { class: 'affected', 'data-testid': 'affected-appointments' },
-          ...affected.map((a) => el('li', { text: `${formatDate(a.date)} at ${a.time}: ${a.patientName} with ${a.doctorName}` }))),
+          ...affected.map((a) => el('li', { text: `${formatDate(a.date)} at ${a.time}: ${a.patientName} with ${appointmentDoctor(a)}` }))),
       ],
       keepText: 'Go back',
       confirmText: `Cancel ${plural(n, 'appointment')} and save`,
@@ -658,16 +662,15 @@ async function renderDoctors() {
   const doctors = await api('/admin/doctors');
   const cards = doctors.map((d) => el('article', { class: 'card', 'data-testid': 'doctor-card' },
     el('div', { class: 'row' },
-      el('h2', { text: d.name }),
+      el('h2', { text: doctorLabel(d) }),
       el('span', { class: `status ${d.active ? 'booked' : 'cancelled'}`, 'data-testid': 'doctor-status', text: d.active ? 'Active' : 'Inactive' })),
-    el('p', { class: 'muted', text: d.specialty }),
     el('p', { class: 'muted', text: `Works ${dayList(d.workingDays)}` }),
     el('div', { class: 'actions start' },
-      el('a', { class: 'button secondary', href: `#/doctors/${d.id}`, text: 'Edit', 'aria-label': `Edit ${d.name}` }),
-      el('a', { class: 'button secondary', href: `#/doctors/${d.id}/leave`, text: 'Leave days', 'aria-label': `Leave days for ${d.name}` }),
+      el('a', { class: 'button secondary', href: `#/doctors/${d.id}`, text: 'Edit', 'aria-label': `Edit ${doctorLabel(d)}` }),
+      el('a', { class: 'button secondary', href: `#/doctors/${d.id}/leave`, text: 'Leave days', 'aria-label': `Leave days for ${doctorLabel(d)}` }),
       d.active
-        ? el('button', { type: 'button', class: 'secondary', text: 'Deactivate', 'aria-label': `Deactivate ${d.name}`, onclick: () => confirmDeactivate(d) })
-        : el('button', { type: 'button', class: 'secondary', text: 'Reactivate', 'aria-label': `Reactivate ${d.name}`, onclick: () => reactivate(d) })),
+        ? el('button', { type: 'button', class: 'secondary', text: 'Deactivate', 'aria-label': `Deactivate ${doctorLabel(d)}`, onclick: () => confirmDeactivate(d) })
+        : el('button', { type: 'button', class: 'secondary', text: 'Reactivate', 'aria-label': `Reactivate ${doctorLabel(d)}`, onclick: () => reactivate(d) })),
   ));
   showScreen('Doctors',
     el('p', {}, el('a', { class: 'button', href: '#/doctors/new', text: 'Add a doctor' })),
@@ -677,16 +680,16 @@ async function renderDoctors() {
 
 function confirmDeactivate(doctor) {
   openDialog({
-    title: `Deactivate ${doctor.name}?`,
+    title: `Deactivate ${doctorLabel(doctor)}?`,
     body: [el('p', { text: 'Patients will no longer be able to book with this doctor. You can reactivate them later.' })],
     keepText: 'Keep active',
     confirmText: 'Deactivate',
     onConfirm: (close) => sendScheduleChange({
       send: (cancelAffected) => api(`/doctors/${doctor.id}`, { method: 'PATCH', body: { active: false, cancelAffected } }),
-      title: `Deactivate ${doctor.name}?`,
+      title: `Deactivate ${doctorLabel(doctor)}?`,
       afterFirstTry: close,
       onDone: async (result) => {
-        toast(`${doctor.name} deactivated.${cancelledNote(result)}`);
+        toast(`${doctorLabel(doctor)} deactivated.${cancelledNote(result)}`);
         await renderDoctors();
       },
     }),
@@ -696,7 +699,7 @@ function confirmDeactivate(doctor) {
 async function reactivate(doctor) {
   try {
     await api(`/doctors/${doctor.id}`, { method: 'PATCH', body: { active: true } });
-    toast(`${doctor.name} reactivated.`);
+    toast(`${doctorLabel(doctor)} reactivated.`);
     await renderDoctors();
   } catch (e) {
     if (!e.sessionEnded) toast(e.message, { error: true });
@@ -719,21 +722,21 @@ async function renderDoctorForm(id) {
     };
     if (!doctor) {
       const created = await api('/doctors', { method: 'POST', body });
-      toast(`${created.name} added.`);
+      toast(`${doctorLabel(created)} added.`);
       go('#/doctors');
       return;
     }
     await sendScheduleChange({
       send: (cancelAffected) => api(`/doctors/${doctor.id}`, { method: 'PATCH', body: { ...body, cancelAffected } }),
-      title: `Save changes to ${doctor.name}?`,
+      title: `Save changes to ${doctorLabel(doctor)}?`,
       onDone: (result) => {
-        toast(`${result.doctor.name} saved.${cancelledNote(result)}`);
+        toast(`${doctorLabel(result.doctor)} saved.${cancelledNote(result)}`);
         go('#/doctors');
       },
     });
   };
 
-  showScreen(doctor ? `Edit ${doctor.name}` : 'Add a doctor',
+  showScreen(doctor ? `Edit ${doctorLabel(doctor)}` : 'Add a doctor',
     el('div', { class: 'card' },
       el('form', {
         onsubmit: async (event) => {
@@ -791,8 +794,8 @@ async function renderLeave(id) {
   const [doctors, leave, config] = await Promise.all([api('/admin/doctors'), api(`/doctors/${id}/leave`), api('/config')]);
   const doctor = doctors.find((d) => d.id === id);
   dateListScreen({
-    title: `Leave days for ${doctor.name}`,
-    intro: `${doctor.name} can't be booked on these days.`,
+    title: `Leave days for ${doctorLabel(doctor)}`,
+    intro: `${doctorLabel(doctor)} can't be booked on these days.`,
     entries: leave,
     describe: (l) => (l.reason ? `${formatDate(l.date)}: ${l.reason}` : formatDate(l.date)),
     removeLabel: (l) => `Remove leave on ${formatDate(l.date)}`,
@@ -808,7 +811,7 @@ async function renderLeave(id) {
     today: config.today,
     onAdd: (date, reason) => sendScheduleChange({
       send: (cancelAffected) => api(`/doctors/${id}/leave`, { method: 'POST', body: { date, reason: reason || null, cancelAffected } }),
-      title: `Add leave for ${doctor.name}?`,
+      title: `Add leave for ${doctorLabel(doctor)}?`,
       onDone: async (result) => {
         toast(`Leave day added.${cancelledNote(result)}`);
         await renderLeave(id);

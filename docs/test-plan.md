@@ -29,13 +29,13 @@ How the suite is built and run is in the [test strategy](test-strategy.md).
 | Layer | Tests | Used for | Why |
 |---|---|---|---|
 | API tests | 147 | Rules, boundaries, permissions, error codes | Fast, so they can cover many input combinations |
-| Database tests | 22 | Migrations, constraints, transactions | Prove the data stays safe even if the API checks are bypassed |
+| Database tests | 23 | Migrations, constraints, transactions | Prove the data stays safe even if the API checks are bypassed |
 | Server tests | 53 | Anything that needs time to pass, settings, clean shutdown | Each runs its own copy of the app, so it can move the clock |
-| UI and accessibility tests | 117 per browser | User-facing behaviour, states, error messages, axe checks and keyboard use | Confirm the rules reach the user correctly |
+| UI and accessibility tests | 120 per browser | User-facing behaviour, states, error messages, axe checks and keyboard use | Confirm the rules reach the user correctly |
 | Journey tests | 4 per browser | Full patient and admin journeys, plus a race and a session expiring | Check the pieces work together, end to end |
 | Bug mode | 10 bugs | Switches on known bugs and expects failures | Proves the tests can actually fail |
 
-In total that is 585 test runs (the UI and journey tests run in Chromium, Firefox and WebKit). 27 are tagged `@smoke` and the rest `@regression`.
+In total that is 595 test runs (the UI and journey tests run in Chromium, Firefox and WebKit). 27 are tagged `@smoke` and the rest `@regression`.
 
 ### How tests stay reliable
 - **Fixed clock:** the shared test server runs at Monday 7 Jan 2030, 10:00 IST, so date rules give the same result every day.
@@ -79,6 +79,7 @@ Folders are under `tests/`.
 | R29 | The database upgrades one version at a time, and a failed step is rolled back | `db/migrations` |
 | R30 | Every screen works at 375px wide and from the keyboard | `ui/phone-layout`, `ui/keyboard` |
 | R31 | On SIGTERM the server finishes open requests and closes the database cleanly | `server/shutdown` |
+| R32 | Doctors who share a name can be told apart: the specialty is shown with the name wherever a doctor is listed or chosen, and lists are sorted by name, then specialty | `ui/clinic-wide`, `db/migrations` |
 
 ## Test design techniques
 - **Boundary values:** exactly 2 hours vs 1.5 hours before (cancel and reschedule), day 30 vs day 31, reason of 200 vs 201 characters, password of 7 vs 8 and 128 vs 129 characters, session idle for 7h59 vs 8h, the 5th vs 6th failed sign-in, marking an outcome at 1 minute before vs the start time.

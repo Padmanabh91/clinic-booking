@@ -1,13 +1,13 @@
 const { test, expect } = require('../support/local-app');
 const { AppointmentsPage } = require('../pages/appointments-page');
 const { TOMORROW } = require('../support/clinic-time');
+const { GENERAL_MEDICINE } = require('../support/doctors');
 
 // Each test runs its own copy of the app with deliberately awkward content (the longest
 // unbroken names and reasons the API allows), so the result never depends on what other
 // tests happened to leave on a shared server.
 
 const PHONE = { width: 375, height: 740 };
-const ASHA_RAO = 1; // seeded doctor, Monday to Friday
 
 // The outermost elements that stick out past the right edge (empty when the page fits),
 // so a failure names the culprit instead of just saying the page is too wide.
@@ -32,7 +32,7 @@ async function expectEachFits(page, addresses) {
 async function addAwkwardContent({ admin, patient }) {
   const doctor = await (await admin.createDoctor({ name: `Dr.${'Z'.repeat(77)}`, specialty: 'S'.repeat(80) })).json();
   const booked = await (await patient.book(doctor.id, { date: TOMORROW, time: '10:00', reason: 'x'.repeat(200) })).json();
-  const cancelled = await (await patient.book(ASHA_RAO, { date: TOMORROW, time: '11:00', reason: 'y'.repeat(200) })).json();
+  const cancelled = await (await patient.book(GENERAL_MEDICINE.id, { date: TOMORROW, time: '11:00', reason: 'y'.repeat(200) })).json();
   await patient.cancel(cancelled.id, 'z'.repeat(200));
   await admin.addLeave(doctor.id, { date: '2030-01-09', reason: 'L'.repeat(100) });
   await admin.addHoliday({ date: '2030-01-26', name: 'H'.repeat(80) });

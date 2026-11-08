@@ -274,11 +274,11 @@ function createApp(db, bugs, { trustProxy = false, secureCookies = false } = {})
   // ----- Doctors and slots -----
   // Patients only see doctors taking appointments. Admins see every doctor.
   app.get('/api/doctors', (req, res) => {
-    res.json(db.prepare('SELECT * FROM doctors WHERE active = 1 ORDER BY name').all().map(publicDoctor));
+    res.json(db.prepare('SELECT * FROM doctors WHERE active = 1 ORDER BY name, specialty, id').all().map(publicDoctor));
   });
 
   app.get('/api/admin/doctors', requireUser, requireAdmin, (req, res) => {
-    res.json(db.prepare('SELECT * FROM doctors ORDER BY name').all().map(publicDoctor));
+    res.json(db.prepare('SELECT * FROM doctors ORDER BY name, specialty, id').all().map(publicDoctor));
   });
 
   app.post('/api/doctors', requireUser, requireAdmin, (req, res) => {

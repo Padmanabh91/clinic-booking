@@ -149,6 +149,14 @@ const MIGRATIONS = [
     CREATE UNIQUE INDEX one_reschedule_per_appointment
       ON appointments (rescheduled_from) WHERE rescheduled_from IS NOT NULL;
   `,
+  // 5: the three demo doctors share one name. Matching on id, old name and specialty leaves
+  // alone any doctor an admin has since changed. A new database has no rows here yet.
+  `
+    UPDATE doctors SET name = 'Dr. Padmanabh'
+    WHERE (id = 1 AND name = 'Dr. Asha Rao' AND specialty = 'General Medicine')
+       OR (id = 2 AND name = 'Dr. Vikram Nair' AND specialty = 'Dermatology')
+       OR (id = 3 AND name = 'Dr. Meera Iyer' AND specialty = 'Pediatrics');
+  `,
 ];
 const LATEST_VERSION = MIGRATIONS.length;
 
@@ -195,9 +203,9 @@ function seed(db) {
   addUser.run('Demo Patient', 'patient@clinic.test', hashPassword('Patient@123'), 'patient');
 
   const addDoctor = db.prepare('INSERT INTO doctors (name, specialty, working_days) VALUES (?, ?, ?)');
-  addDoctor.run('Dr. Asha Rao', 'General Medicine', '1,2,3,4,5');
-  addDoctor.run('Dr. Vikram Nair', 'Dermatology', '1,3,5');
-  addDoctor.run('Dr. Meera Iyer', 'Pediatrics', '2,4,6');
+  addDoctor.run('Dr. Padmanabh', 'General Medicine', '1,2,3,4,5');
+  addDoctor.run('Dr. Padmanabh', 'Dermatology', '1,3,5');
+  addDoctor.run('Dr. Padmanabh', 'Pediatrics', '2,4,6');
 }
 
 module.exports = {

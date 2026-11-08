@@ -58,10 +58,10 @@ test.describe('Creating a new database', () => {
 
     expect(db.prepare('SELECT email FROM users ORDER BY id').all().map((u) => u.email))
       .toEqual(['admin@clinic.test', 'patient@clinic.test']);
-    expect(db.prepare('SELECT name, active FROM doctors ORDER BY id').all().map((d) => ({ ...d }))).toEqual([
-      { name: 'Dr. Asha Rao', active: 1 },
-      { name: 'Dr. Vikram Nair', active: 1 },
-      { name: 'Dr. Meera Iyer', active: 1 },
+    expect(db.prepare('SELECT name, specialty, working_days, active FROM doctors ORDER BY id').all().map((d) => ({ ...d }))).toEqual([
+      { name: 'Dr. Padmanabh', specialty: 'General Medicine', working_days: '1,2,3,4,5', active: 1 },
+      { name: 'Dr. Padmanabh', specialty: 'Dermatology', working_days: '1,3,5', active: 1 },
+      { name: 'Dr. Padmanabh', specialty: 'Pediatrics', working_days: '2,4,6', active: 1 },
     ]);
     db.close();
   });
@@ -151,7 +151,7 @@ test.describe('Upgrading to version 4 (appointment statuses rebuilt)', () => {
 
     const db = createDb(file, NO_BUGS);
 
-    expect(schemaVersion(db)).toBe(4);
+    expect(schemaVersion(db)).toBe(LATEST_VERSION);
     expect(db.prepare('SELECT * FROM appointments ORDER BY id').all().map((a) => ({ ...a }))).toEqual([
       { id: 1, doctor_id: 1, patient_id: 2, date: '2030-01-08', time: '10:00', reason: 'Fever', status: 'booked',
         created_at: '2030-01-07T09:00', cancelled_at: null, cancelled_by: null, cancel_reason: null,
@@ -180,6 +180,39 @@ test.describe('Upgrading to version 4 (appointment statuses rebuilt)', () => {
     const next = db.prepare(`INSERT INTO appointments (doctor_id, patient_id, date, time, reason, status)
       VALUES (1, 2, '2030-01-09', '10:00', 'x', 'booked')`).run();
     expect(Number(next.lastInsertRowid)).toBe(3);
+    db.close();
+  });
+});
+
+test.describe('Upgrading to version 5 (the demo doctors renamed)', () => {
+  test('renames only untouched demo doctors, and keeps their specialty, days and appointments', { tag: '@regression' }, async ({}, testInfo) => {
+    const file = testInfo.outputPath('clinic.db');
+    const before = new DatabaseSync(file);
+    before.exec('PRAGMA foreign_keys = ON');
+    migrate(before, 4);
+    before.exec(`
+      INSERT INTO users (id, name, email, password_hash, role) VALUES (1, 'Pat', 'p@clinic.test', 'x', 'patient');
+      INSERT INTO doctors (id, name, specialty, working_days) VALUES
+        (1, 'Dr. Asha Rao', 'General Medicine', '1,2,3,4,5'),
+        (2, 'Dr. Vikram Nair', 'Dermatology', '1,3'),
+        (3, 'Dr. Meera Iyer', 'Cardiology', '2,4,6'),
+        (4, 'Dr. Asha Rao', 'General Medicine', '1');
+      INSERT INTO appointments (id, doctor_id, patient_id, date, time, reason, status)
+        VALUES (1, 1, 1, '2030-01-08', '10:00', 'Fever', 'booked');
+    `);
+    before.close();
+
+    const db = createDb(file, NO_BUGS);
+
+    expect(schemaVersion(db)).toBe(LATEST_VERSION);
+    expect(db.prepare('SELECT id, name, specialty, working_days FROM doctors ORDER BY id').all().map((d) => ({ ...d }))).toEqual([
+      { id: 1, name: 'Dr. Padmanabh', specialty: 'General Medicine', working_days: '1,2,3,4,5' },
+      { id: 2, name: 'Dr. Padmanabh', specialty: 'Dermatology', working_days: '1,3' },
+      { id: 3, name: 'Dr. Meera Iyer', specialty: 'Cardiology', working_days: '2,4,6' }, // an admin changed its specialty
+      { id: 4, name: 'Dr. Asha Rao', specialty: 'General Medicine', working_days: '1' }, // not a demo doctor
+    ]);
+    expect(db.prepare('SELECT doctor_id, reason, status FROM appointments').all().map((a) => ({ ...a })))
+      .toEqual([{ doctor_id: 1, reason: 'Fever', status: 'booked' }]);
     db.close();
   });
 });

@@ -3,6 +3,7 @@ const { LoginPage } = require('../../pages/login-page');
 const { DoctorsPage, DoctorFormPage, ScheduleDatesPage } = require('../../pages/admin-pages');
 const { AppointmentsPage } = require('../../pages/appointments-page');
 const { TODAY, TOMORROW } = require('../../support/clinic-time');
+const { doctorLabel } = require('../../support/doctors');
 
 // Marking an appointment completed needs its start time to pass, so this journey runs on its
 // own copy of the app and moves the clock. The clock starts at Monday 10:00 IST.
@@ -13,7 +14,8 @@ test.describe('Admin journey', { tag: '@smoke' }, () => {
     const page = await context.newPage();
     const doctors = new DoctorsPage(page);
     const appointments = new AppointmentsPage(page);
-    const name = 'Dr. Journey Rao';
+    const newDoctor = { name: 'Dr. Journey Rao', specialty: 'Cardiology' };
+    const { name, specialty } = newDoctor;
     let doctorId;
 
     await test.step('sign in', async () => {
@@ -28,10 +30,10 @@ test.describe('Admin journey', { tag: '@smoke' }, () => {
       await doctors.addDoctor.click();
       const form = new DoctorFormPage(page);
       await form.name.fill(name);
-      await form.specialty.fill('Cardiology');
+      await form.specialty.fill(specialty);
       await form.save.click();
-      await expect(doctors.toast).toHaveText(`${name} added.`);
-      await expect(doctors.status(name)).toHaveText('Active');
+      await expect(doctors.toast).toHaveText(`${doctorLabel(newDoctor)} added.`);
+      await expect(doctors.status(newDoctor)).toHaveText('Active');
       doctorId = (await (await patient.doctors()).json()).find((d) => d.name === name).id;
     });
 
@@ -42,9 +44,9 @@ test.describe('Admin journey', { tag: '@smoke' }, () => {
 
     await test.step('add a leave day over the booking, see it listed, and confirm', async () => {
       const leave = new ScheduleDatesPage(page);
-      await leave.gotoLeave({ id: doctorId, name });
+      await leave.gotoLeave({ id: doctorId, ...newDoctor });
       await leave.addDate(TOMORROW, 'Conference');
-      await expect(leave.affected.list).toHaveText(`Tue, 8 Jan 2030 at 11:00: ${patient.user.name} with ${name}`);
+      await expect(leave.affected.list).toHaveText(`Tue, 8 Jan 2030 at 11:00: ${patient.user.name} with ${doctorLabel(newDoctor)}`);
       await leave.affected.confirm.click();
       await expect(leave.toast).toHaveText('Leave day added. 1 appointment cancelled.');
     });

@@ -3,6 +3,7 @@ const { DoctorsPage, DoctorFormPage, ScheduleDatesPage } = require('../pages/adm
 const { BookingPage } = require('../pages/booking-page');
 const { AppointmentsPage } = require('../pages/appointments-page');
 const { TOMORROW } = require('../support/clinic-time');
+const { doctorLabel } = require('../support/doctors');
 
 // Each test changes only its own doctor. Holidays close the clinic for everyone, so their
 // UI tests run on separate copies of the app in clinic-wide.spec.js.
@@ -14,6 +15,7 @@ test.describe('Adding and editing doctors', () => {
     await doctors.addDoctor.click();
     const form = new DoctorFormPage(adminPage);
     const name = `Dr. New ${Date.now()}`;
+    const added = { name, specialty: 'Cardiology' };
 
     await form.name.fill(name);
     await form.specialty.fill('Cardiology');
@@ -21,26 +23,25 @@ test.describe('Adding and editing doctors', () => {
     await form.day('Thursday').uncheck();
     await form.save.click();
 
-    await expect(doctors.toast).toHaveText(`${name} added.`);
-    await expect(doctors.status(name)).toHaveText('Active');
-    await expect(doctors.card(name)).toContainText('Cardiology');
-    await expect(doctors.card(name)).toContainText('Works Mon, Wed, Fri');
+    await expect(doctors.toast).toHaveText(`${doctorLabel(added)} added.`);
+    await expect(doctors.status(added)).toHaveText('Active');
+    await expect(doctors.card(added)).toContainText('Works Mon, Wed, Fri');
   });
 
   test('an admin edits a doctor', { tag: '@regression' }, async ({ adminPage, doctor }) => {
     const doctors = new DoctorsPage(adminPage);
     await doctors.goto();
-    await adminPage.getByRole('link', { name: `Edit ${doctor.name}` }).click();
+    await adminPage.getByRole('link', { name: `Edit ${doctorLabel(doctor)}`, exact: true }).click();
     const form = new DoctorFormPage(adminPage);
     await expect(form.name).toHaveValue(doctor.name);
 
-    await form.specialty.fill('Dermatology');
+    const edited = { ...doctor, specialty: 'Dermatology' };
+    await form.specialty.fill(edited.specialty);
     await form.day('Saturday').check();
     await form.save.click();
 
-    await expect(doctors.toast).toHaveText(`${doctor.name} saved.`);
-    await expect(doctors.card(doctor.name)).toContainText('Dermatology');
-    await expect(doctors.card(doctor.name)).toContainText('Works Mon, Tue, Wed, Thu, Fri, Sat');
+    await expect(doctors.toast).toHaveText(`${doctorLabel(edited)} saved.`);
+    await expect(doctors.card(edited)).toContainText('Works Mon, Tue, Wed, Thu, Fri, Sat');
   });
 
   test('removing a working day with bookings shows them, and Go back changes nothing', { tag: '@regression' }, async ({ adminPage, admin, patient, doctor }) => {
@@ -51,7 +52,7 @@ test.describe('Adding and editing doctors', () => {
     await form.day('Tuesday').uncheck();
     await form.save.click();
 
-    await expect(form.affected.list).toHaveText(`Tue, 8 Jan 2030 at 10:00: ${patient.user.name} with ${doctor.name}`);
+    await expect(form.affected.list).toHaveText(`Tue, 8 Jan 2030 at 10:00: ${patient.user.name} with ${doctorLabel(doctor)}`);
     await form.affected.goBack.click();
     await expect(form.affected.dialog).toBeHidden();
     const saved = (await (await admin.allDoctors()).json()).find((d) => d.id === doctor.id);
@@ -71,10 +72,10 @@ test.describe('Deactivating doctors', () => {
     const doctors = new DoctorsPage(adminPage);
     await doctors.goto();
 
-    await doctors.startDeactivating(doctor.name);
+    await doctors.startDeactivating(doctor);
 
-    await expect(doctors.toast).toHaveText(`${doctor.name} deactivated.`);
-    await expect(doctors.status(doctor.name)).toHaveText('Inactive');
+    await expect(doctors.toast).toHaveText(`${doctorLabel(doctor)} deactivated.`);
+    await expect(doctors.status(doctor)).toHaveText('Inactive');
     const booking = new BookingPage(patientPage);
     await booking.goto();
     await expect(booking.doctor.locator(`option[value="${doctor.id}"]`)).toHaveCount(0);
@@ -83,12 +84,12 @@ test.describe('Deactivating doctors', () => {
   test('Keep active leaves the doctor bookable', { tag: '@regression' }, async ({ adminPage, doctor }) => {
     const doctors = new DoctorsPage(adminPage);
     await doctors.goto();
-    await adminPage.getByRole('button', { name: `Deactivate ${doctor.name}` }).click();
+    await adminPage.getByRole('button', { name: `Deactivate ${doctorLabel(doctor)}`, exact: true }).click();
 
     await doctors.dialog.getByRole('button', { name: 'Keep active' }).click();
 
     await expect(doctors.dialog).toBeHidden();
-    await expect(doctors.status(doctor.name)).toHaveText('Active');
+    await expect(doctors.status(doctor)).toHaveText('Active');
   });
 
   test('with bookings, lists them and cancels them only once confirmed', { tag: '@regression' }, async ({ adminPage, patientPage, patient, doctor }) => {
@@ -96,12 +97,12 @@ test.describe('Deactivating doctors', () => {
     const doctors = new DoctorsPage(adminPage);
     await doctors.goto();
 
-    await doctors.startDeactivating(doctor.name);
-    await expect(doctors.affected.list).toHaveText(`Tue, 8 Jan 2030 at 11:00: ${patient.user.name} with ${doctor.name}`);
+    await doctors.startDeactivating(doctor);
+    await expect(doctors.affected.list).toHaveText(`Tue, 8 Jan 2030 at 11:00: ${patient.user.name} with ${doctorLabel(doctor)}`);
     await doctors.affected.confirm.click();
 
-    await expect(doctors.toast).toHaveText(`${doctor.name} deactivated. 1 appointment cancelled.`);
-    await expect(doctors.status(doctor.name)).toHaveText('Inactive');
+    await expect(doctors.toast).toHaveText(`${doctorLabel(doctor)} deactivated. 1 appointment cancelled.`);
+    await expect(doctors.status(doctor)).toHaveText('Inactive');
     const appointments = new AppointmentsPage(patientPage);
     await appointments.goto();
     const card = appointments.card(doctor.name);
@@ -115,10 +116,10 @@ test.describe('Deactivating doctors', () => {
     const doctors = new DoctorsPage(adminPage);
     await doctors.goto();
 
-    await adminPage.getByRole('button', { name: `Reactivate ${doctor.name}` }).click();
+    await adminPage.getByRole('button', { name: `Reactivate ${doctorLabel(doctor)}`, exact: true }).click();
 
-    await expect(doctors.toast).toHaveText(`${doctor.name} reactivated.`);
-    await expect(doctors.status(doctor.name)).toHaveText('Active');
+    await expect(doctors.toast).toHaveText(`${doctorLabel(doctor)} reactivated.`);
+    await expect(doctors.status(doctor)).toHaveText('Active');
   });
 });
 
@@ -149,7 +150,7 @@ test.describe('Leave days', () => {
     await leave.gotoLeave(doctor);
 
     await leave.addDate(TOMORROW);
-    await expect(leave.affected.list).toHaveText(`Tue, 8 Jan 2030 at 15:30: ${patient.user.name} with ${doctor.name}`);
+    await expect(leave.affected.list).toHaveText(`Tue, 8 Jan 2030 at 15:30: ${patient.user.name} with ${doctorLabel(doctor)}`);
     await leave.affected.confirm.click();
 
     await expect(leave.toast).toHaveText('Leave day added. 1 appointment cancelled.');

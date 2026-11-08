@@ -3,6 +3,7 @@ const { BookingPage } = require('../pages/booking-page');
 const { AppointmentsPage } = require('../pages/appointments-page');
 const { DoctorsPage } = require('../pages/admin-pages');
 const { TOMORROW } = require('../support/clinic-time');
+const { doctorLabel } = require('../support/doctors');
 
 // Keyboard checks run on the shared server; the phone layout checks are in phone-layout.spec.js.
 
@@ -63,12 +64,12 @@ test.describe('Keyboard use', () => {
     const doctors = new DoctorsPage(adminPage);
     await doctors.goto();
 
-    await adminPage.getByRole('button', { name: `Deactivate ${doctor.name}` }).focus();
+    await adminPage.getByRole('button', { name: `Deactivate ${doctorLabel(doctor)}`, exact: true }).focus();
     await adminPage.keyboard.press('Enter');
     await expect(doctors.dialog).toBeVisible();
     await doctors.dialog.getByRole('button', { name: 'Deactivate' }).focus();
     await adminPage.keyboard.press('Enter');
 
-    await expect(doctors.status(doctor.name)).toHaveText('Inactive');
+    await expect(doctors.status(doctor)).toHaveText('Inactive');
   });
 });

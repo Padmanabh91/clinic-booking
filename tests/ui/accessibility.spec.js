@@ -53,7 +53,7 @@ test.describe('Accessibility (WCAG 2.1 AA, automated checks)', () => {
   test('admin doctors page', { tag: '@regression' }, async ({ adminPage, doctor }) => {
     const doctors = new DoctorsPage(adminPage);
     await doctors.goto();
-    await expect(doctors.card(doctor.name)).toBeVisible();
+    await expect(doctors.card(doctor)).toBeVisible();
     await expectNoViolations(adminPage);
   });
 
@@ -83,7 +83,7 @@ test.describe('Accessibility (WCAG 2.1 AA, automated checks)', () => {
     await patient.book(doctor.id, { date: TOMORROW, time: '10:00' });
     const doctors = new DoctorsPage(adminPage);
     await doctors.goto();
-    await doctors.startDeactivating(doctor.name);
+    await doctors.startDeactivating(doctor);
     await expect(doctors.affected.list).toBeVisible();
     await expectNoViolations(adminPage);
   });

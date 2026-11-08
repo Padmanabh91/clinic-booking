@@ -1,4 +1,5 @@
 const { expect } = require('@playwright/test');
+const { doctorLabel } = require('../support/doctors');
 
 // The dialog that lists booked appointments a schedule change would cancel.
 class AffectedAppointmentsDialog {
@@ -25,16 +26,17 @@ class DoctorsPage {
     await expect(this.heading).toBeVisible();
   }
 
-  card(doctorName) {
-    return this.page.getByTestId('doctor-card').filter({ has: this.page.getByRole('heading', { name: doctorName, exact: true }) });
+  // Doctors can share a name, so a card is found by name and specialty together.
+  card(doctor) {
+    return this.page.getByTestId('doctor-card').filter({ has: this.page.getByRole('heading', { name: doctorLabel(doctor), exact: true }) });
   }
 
-  status(doctorName) {
-    return this.card(doctorName).getByTestId('doctor-status');
+  status(doctor) {
+    return this.card(doctor).getByTestId('doctor-status');
   }
 
-  async startDeactivating(doctorName) {
-    await this.page.getByRole('button', { name: `Deactivate ${doctorName}` }).click();
+  async startDeactivating(doctor) {
+    await this.page.getByRole('button', { name: `Deactivate ${doctorLabel(doctor)}`, exact: true }).click();
     await expect(this.dialog).toBeVisible();
     await this.dialog.getByRole('button', { name: 'Deactivate' }).click();
   }
@@ -68,7 +70,7 @@ class ScheduleDatesPage {
 
   async gotoLeave(doctor) {
     await this.page.goto(`/#/doctors/${doctor.id}/leave`);
-    await expect(this.page.getByRole('heading', { level: 1, name: `Leave days for ${doctor.name}` })).toBeVisible();
+    await expect(this.page.getByRole('heading', { level: 1, name: `Leave days for ${doctorLabel(doctor)}`, exact: true })).toBeVisible();
     this.note = this.page.getByLabel('Reason (optional)');
     this.add = this.page.getByRole('button', { name: 'Add leave day' });
   }

@@ -3,6 +3,7 @@ const { BookingPage } = require('../pages/booking-page');
 const { AppointmentsPage } = require('../pages/appointments-page');
 const { DoctorsPage } = require('../pages/admin-pages');
 const { TOMORROW } = require('../support/clinic-time');
+const { doctorLabel } = require('../support/doctors');
 
 // Holds matching requests until release() is called, so a loading state can be seen
 // for as long as the test needs instead of depending on timing.
@@ -116,11 +117,11 @@ test.describe('Error states', () => {
       status: 500, json: { error: { code: 'SERVER_ERROR', message: 'Something went wrong.' } },
     }));
 
-    await adminPage.getByRole('button', { name: `Reactivate ${doctor.name}` }).click();
+    await adminPage.getByRole('button', { name: `Reactivate ${doctorLabel(doctor)}`, exact: true }).click();
 
     await expect(doctors.toast).toHaveText('Something went wrong.');
     await expect(doctors.toast).toHaveClass(/error/);
-    await expect(doctors.status(doctor.name)).toHaveText('Inactive');
+    await expect(doctors.status(doctor)).toHaveText('Inactive');
   });
 
   test('a success after an error is styled as a success again', { tag: '@regression' }, async ({ adminPage, admin, doctor }) => {
@@ -131,12 +132,12 @@ test.describe('Error states', () => {
     await adminPage.route(`**/api/doctors/${doctor.id}`, (route) => (failures-- > 0
       ? route.fulfill({ status: 500, json: { error: { code: 'SERVER_ERROR', message: 'Something went wrong.' } } })
       : route.continue()));
-    await adminPage.getByRole('button', { name: `Reactivate ${doctor.name}` }).click();
+    await adminPage.getByRole('button', { name: `Reactivate ${doctorLabel(doctor)}`, exact: true }).click();
     await expect(doctors.toast).toHaveClass(/error/);
 
-    await adminPage.getByRole('button', { name: `Reactivate ${doctor.name}` }).click();
+    await adminPage.getByRole('button', { name: `Reactivate ${doctorLabel(doctor)}`, exact: true }).click();
 
-    await expect(doctors.toast).toHaveText(`${doctor.name} reactivated.`);
+    await expect(doctors.toast).toHaveText(`${doctorLabel(doctor)} reactivated.`);
     await expect(doctors.toast).not.toHaveClass(/error/);
   });
 });

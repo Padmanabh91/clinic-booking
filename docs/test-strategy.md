@@ -58,6 +58,7 @@ Bug mode always uses an in-memory database, so it never touches saved data. When
 - **Hold requests to see in-between states.** To test a loading state, hold the request with `page.route` until the test releases it, instead of relying on timing (see `tests/ui/states.spec.js`).
 - **Name the culprit.** When a check can fail for many reasons, make it report what failed. For example, the phone layout check lists the elements that stick out, instead of just saying the page is too wide.
 - **Tag every test.** Add `{ tag: '@smoke' }` or `{ tag: '@regression' }` to each new test.
+- **Pick seeded doctors by id or specialty.** The three seeded doctors share one name. Use the constants in `tests/support/doctors.js`, and `doctorLabel()` for the "Name · Specialty" text the app shows.
 
 ## Failures, traces and reports
 - Screenshots and video are kept for failed tests, in `test-results/`.

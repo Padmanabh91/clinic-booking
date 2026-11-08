@@ -1,6 +1,7 @@
 const { test, expect } = require('../support/fixtures');
 const { AppointmentsPage, ReschedulePage } = require('../pages/appointments-page');
 const { TODAY, TOMORROW } = require('../support/clinic-time');
+const { doctorLabel } = require('../support/doctors');
 
 const NEXT_WEDNESDAY = '2030-01-09';
 
@@ -14,7 +15,7 @@ test.describe('Rescheduling', () => {
     const reschedule = new ReschedulePage(patientPage);
     await expect(reschedule.heading).toBeFocused();
     await expect(patientPage).toHaveTitle('Move appointment | Clinic Booking, Bangalore');
-    await expect(reschedule.current).toHaveText(`Currently Tue, 8 Jan 2030 at 10:00 IST with ${doctor.name}.`);
+    await expect(reschedule.current).toHaveText(`Currently Tue, 8 Jan 2030 at 10:00 IST with ${doctorLabel(doctor)}.`);
     await expect(reschedule.slot('10:00')).toBeDisabled(); // its own current slot
     await reschedule.moveTo(NEXT_WEDNESDAY, '14:30');
 

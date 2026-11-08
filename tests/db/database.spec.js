@@ -9,7 +9,7 @@ process.env.FIXED_NOW = FIXED_NOW;
 
 const NO_BUGS = new Set();
 const PATIENT_ID = 2; // the seeded demo patient
-const DOCTOR_ID = 1; // Dr. Asha Rao, Monday to Friday
+const DOCTOR_ID = 1; // the seeded General Medicine doctor, Monday to Friday
 
 function addAppointment(db, { doctorId = DOCTOR_ID, patientId = PATIENT_ID, time = '10:00', status = 'booked' } = {}) {
   return db.prepare(
